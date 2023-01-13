@@ -1,0 +1,48 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install system dependencies
+      apt:
+        name:
+          - apache2
+          - python3-pip
+          - python3-venv
+          - libapache2-mod-wsgi-py3
+          - docker.io
+      tags: dependencies
+    - name: Create a Python virtual environment
+      python_venv:
+        path: /var/www/myapp
+        interpreter: /usr/bin/python3
+    - name: Install python dependencies
+      pip:
+        name:
+          - flask
+          - gunicorn
+        virtualenv: /var/www/myapp
+        chdir: /var/www/myapp
+    - name: Copy the application code
+      copy:
+        src: /path/to/app.py
+        dest: /var/www/myapp
+    - name: Configure Apache
+      template:
+        src: apache.conf.j2
+        dest: /etc/apache2/sites-available/myapp.conf
+      notify:
+        - restart apache
+    - name: Enable the Apache site
+      apache2_module:
+        name: myapp
+        state: present
+    - name: Build the Docker container
+      docker_image:
+        path: /path/to/docker
+        name: myapp
+    - name: Run the Docker container
+      docker_container:
+        name: myapp
+        image: myapp
+        ports:
+          - "80:80"
+
